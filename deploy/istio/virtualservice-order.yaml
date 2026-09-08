@@ -1,0 +1,24 @@
+# Bound to both "mesh" and the ingress gateway — order-service is the entry
+# point of the demo
+# (`curl -H "Host: order-service.stock-mesh.svc.cluster.local" .../orders`;
+# Istio expands the short `hosts` entry below to that FQDN for gateway routing).
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-service
+  namespace: stock-mesh
+spec:
+  hosts:
+    - order-service
+  gateways:
+    - mesh
+    - stock-mesh-gateway
+  http:
+    - route:
+        - destination:
+            host: order-service.stock-mesh.svc.cluster.local
+      retries:
+        attempts: 2
+        perTryTimeout: 3s
+        retryOn: 5xx,reset,connect-failure
+      timeout: 8s

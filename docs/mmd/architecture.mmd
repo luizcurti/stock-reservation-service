@@ -1,0 +1,30 @@
+flowchart TB
+    Client["HTTP Client"]
+
+    subgraph Cluster["cluster primary (config/local.ts)"]
+        Scheduler["Reservation expiry scheduler\n(config/reservationExpiryScheduler.ts)"]
+    end
+
+    subgraph Express["Express app (app.ts) — 1 of WEB_CONCURRENCY workers"]
+        CORS["CORS"]
+        Metrics["/metrics\n(Prometheus, prom-client)"]
+        RateLimit["Rate limiter\n(RATE_LIMIT_MAX per 15 min)"]
+        Body["Body parser"]
+        Routes["TSOA-generated routes\n(build/routes.ts)"]
+        ErrorHandler["Global error handler\n(ValidateError / customError / 500)"]
+    end
+
+    Controller["ProductController\n(src/controllers)"]
+    Service["ProductService\n(src/services)\nvalidation + business rules"]
+    Repository["ProductRepository\n(src/repositories)\nSQL + transactions"]
+    Pool["mysql2 connection pool\n(src/config/database.ts)"]
+    DB[("MySQL 8.4\nIN_STOCK / RESERVED / SOLD")]
+
+    Client --> CORS --> RateLimit --> Body --> Routes --> Controller
+    Client -.GET /metrics.-> Metrics
+    Controller --> Service --> Repository --> Pool --> DB
+    Routes -.validation error.-> ErrorHandler
+    Service -.customError.-> ErrorHandler
+    Repository -.customError.-> ErrorHandler
+    ErrorHandler --> Client
+    Scheduler -->|"releaseExpiredReservations()"| Repository

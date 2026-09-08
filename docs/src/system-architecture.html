@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  svg text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<svg id="canvas" width="1600" height="1360" viewBox="0 0 1600 1360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+    <marker id="arrowDash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8c4fff"/>
+    </marker>
+  </defs>
+
+  <!-- ============ ICON DEFINITIONS ============ -->
+  <defs>
+    <g id="icon-user">
+      <circle cx="12" cy="8" r="4" stroke="white" stroke-width="1.8" fill="none"/>
+      <path d="M4,21 C4,15.5 8,13 12,13 C16,13 20,15.5 20,21" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    </g>
+    <g id="icon-shield">
+      <path d="M12,3 L20,6.5 V11.5 C20,16.5 16.5,20 12,21.5 C7.5,20 4,16.5 4,11.5 V6.5 Z" stroke="white" stroke-width="1.8" fill="none" stroke-linejoin="round"/>
+      <path d="M8.5,12 L11,14.5 L16,9" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="icon-server">
+      <rect x="4" y="4" width="16" height="6" rx="1.4" stroke="white" stroke-width="1.7" fill="none"/>
+      <rect x="4" y="14" width="16" height="6" rx="1.4" stroke="white" stroke-width="1.7" fill="none"/>
+      <circle cx="7.3" cy="7" r="1" fill="white"/>
+      <circle cx="7.3" cy="17" r="1" fill="white"/>
+    </g>
+    <g id="icon-db">
+      <ellipse cx="12" cy="6" rx="7.5" ry="3" stroke="white" stroke-width="1.7" fill="none"/>
+      <path d="M4.5,6 V18 C4.5,19.7 7.9,21 12,21 C16.1,21 19.5,19.7 19.5,18 V6" stroke="white" stroke-width="1.7" fill="none"/>
+      <path d="M4.5,12 C4.5,13.7 7.9,15 12,15 C16.1,15 19.5,13.7 19.5,12" stroke="white" stroke-width="1.7" fill="none"/>
+    </g>
+    <g id="icon-clock">
+      <circle cx="12" cy="12" r="8.5" stroke="white" stroke-width="1.7" fill="none"/>
+      <path d="M12,7 V12 L15.5,14.5" stroke="white" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="icon-chart">
+      <path d="M4,20 H20" stroke="white" stroke-width="1.7" stroke-linecap="round"/>
+      <rect x="6" y="13" width="3.2" height="7" rx="0.6" fill="white"/>
+      <rect x="10.4" y="8" width="3.2" height="12" rx="0.6" fill="white"/>
+      <rect x="14.8" y="4.5" width="3.2" height="15.5" rx="0.6" fill="white"/>
+    </g>
+    <g id="icon-check">
+      <circle cx="12" cy="12" r="8.5" stroke="white" stroke-width="1.7" fill="none"/>
+      <path d="M7.5,12.3 L10.3,15 L16.5,8.8" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="icon-x">
+      <circle cx="12" cy="12" r="8.5" stroke="white" stroke-width="1.7" fill="none"/>
+      <path d="M8.5,8.5 L15.5,15.5 M15.5,8.5 L8.5,15.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+    <g id="icon-warn">
+      <path d="M12,3.5 L21,19.5 H3 Z" stroke="white" stroke-width="1.7" fill="none" stroke-linejoin="round"/>
+      <path d="M12,10 V14.2" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <circle cx="12" cy="16.8" r="1" fill="white"/>
+    </g>
+    <g id="icon-mesh">
+      <circle cx="6" cy="6" r="2.3" stroke="white" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="6" r="2.3" stroke="white" stroke-width="1.5" fill="none"/>
+      <circle cx="12" cy="18" r="2.3" stroke="white" stroke-width="1.5" fill="none"/>
+      <path d="M8,6 H16 M7,8 L11,16 M17,8 L13,16" stroke="white" stroke-width="1.4"/>
+    </g>
+  </defs>
+
+  <!-- ============ MAIN SPINE ============ -->
+
+  <!-- Users -->
+  <rect x="635" y="94" width="376" height="103" rx="16" fill="#f1f1ef" stroke="#5a6b7a" stroke-width="1.5"/>
+  <rect x="663" y="115" width="60" height="60" rx="12" fill="#5a6b7a"/>
+  <use href="#icon-user" x="671" y="123" width="44" height="44"/>
+  <text x="745" y="153" font-size="24" font-weight="600" fill="#222">Users / Clients</text>
+
+  <!-- Edge -->
+  <rect x="564" y="329" width="517" height="132" rx="16" fill="#eef5fc" stroke="#2e73b8" stroke-width="1.5"/>
+  <rect x="592" y="365" width="60" height="60" rx="12" fill="#2e73b8"/>
+  <use href="#icon-shield" x="600" y="373" width="44" height="44"/>
+  <text x="674" y="390" font-size="24" font-weight="600" fill="#1c4c7a">Edge</text>
+  <text x="674" y="418" font-size="16" fill="#3a6690">Rate limiter · Istio ingress + mTLS (k8s)</text>
+
+  <!-- order-service -->
+  <rect x="541" y="592" width="564" height="132" rx="16" fill="#fdeee0" stroke="#ec7211" stroke-width="1.5"/>
+  <rect x="569" y="628" width="60" height="60" rx="12" fill="#ec7211"/>
+  <use href="#icon-server" x="577" y="636" width="44" height="44"/>
+  <text x="651" y="653" font-size="24" font-weight="600" fill="#a85510">order-service</text>
+  <text x="651" y="681" font-size="16" fill="#c56313">Orchestrator: reserve → charge → confirm</text>
+
+  <!-- spine arrows -->
+  <line x1="823" y1="197" x2="823" y2="329" stroke="#555" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="823" y1="461" x2="823" y2="592" stroke="#555" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- branch to stock-service / payment-service -->
+  <path d="M823,724 V790 H423 V856" stroke="#555" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+  <path d="M823,724 V790 H1210 V856" stroke="#555" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+  <text x="470" y="780" font-size="17" fill="#555">1. reserve</text>
+  <text x="1010" y="780" font-size="17" fill="#555">2. charge</text>
+
+  <!-- stock-service -->
+  <rect x="212" y="856" width="423" height="132" rx="16" fill="#fdeee0" stroke="#ec7211" stroke-width="1.5"/>
+  <rect x="240" y="892" width="60" height="60" rx="12" fill="#ec7211"/>
+  <use href="#icon-server" x="248" y="900" width="44" height="44"/>
+  <text x="322" y="917" font-size="24" font-weight="600" fill="#a85510">stock-service</text>
+  <text x="322" y="945" font-size="16" fill="#c56313">SELECT ... FOR UPDATE</text>
+
+  <!-- MySQL -->
+  <rect x="682" y="856" width="259" height="132" rx="16" fill="#f5f0ff" stroke="#8c4fff" stroke-width="1.5"/>
+  <rect x="702" y="892" width="60" height="60" rx="12" fill="#8c4fff"/>
+  <use href="#icon-db" x="710" y="900" width="44" height="44"/>
+  <text x="776" y="917" font-size="22" font-weight="600" fill="#5a35a8">MySQL 8.4</text>
+  <text x="776" y="945" font-size="15" fill="#7856c9">Stock state</text>
+
+  <!-- payment-service -->
+  <rect x="987" y="856" width="447" height="132" rx="16" fill="#fdeee0" stroke="#ec7211" stroke-width="1.5"/>
+  <rect x="1015" y="892" width="60" height="60" rx="12" fill="#ec7211"/>
+  <use href="#icon-server" x="1023" y="900" width="44" height="44"/>
+  <text x="1097" y="917" font-size="24" font-weight="600" fill="#a85510">payment-service</text>
+  <text x="1097" y="945" font-size="16" fill="#c56313">CHAOS_MODE: off/flaky/fail/slow</text>
+
+  <line x1="635" y1="922" x2="682" y2="922" stroke="#555" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- outcomes -->
+  <path d="M423,988 L317,1152" stroke="#555" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+  <path d="M1150,988 L776,1152" stroke="#555" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+  <path d="M1300,988 L1234,1152" stroke="#555" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="94" y="1152" width="447" height="103" rx="20" fill="#fdf3df" stroke="#c98a0f" stroke-width="1.5"/>
+  <rect x="118" y="1178" width="52" height="52" rx="12" fill="#c98a0f"/>
+  <use href="#icon-warn" x="126" y="1186" width="36" height="36"/>
+  <text x="186" y="1212" font-size="21" font-weight="600" fill="#7a5308">Insufficient stock</text>
+
+  <rect x="588" y="1152" width="376" height="103" rx="20" fill="#e6f4ea" stroke="#1d8a4c" stroke-width="1.5"/>
+  <rect x="612" y="1178" width="52" height="52" rx="12" fill="#1d8a4c"/>
+  <use href="#icon-check" x="620" y="1186" width="36" height="36"/>
+  <text x="680" y="1212" font-size="21" font-weight="600" fill="#12572f">Confirmed</text>
+
+  <rect x="1011" y="1152" width="447" height="103" rx="20" fill="#fbe7e4" stroke="#d13212" stroke-width="1.5"/>
+  <rect x="1035" y="1178" width="52" height="52" rx="12" fill="#d13212"/>
+  <use href="#icon-x" x="1043" y="1186" width="36" height="36"/>
+  <text x="1103" y="1212" font-size="21" font-weight="600" fill="#8c2010">Payment declined</text>
+
+  <!-- ============ LEFT: LEGEND ============ -->
+  <rect x="40" y="329" width="470" height="264" rx="12" fill="#fffdf2" stroke="#cdbf7a" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="62" y="362" font-size="20" font-weight="600" fill="#8a7a2b">Legend</text>
+
+  <rect x="62" y="380" width="30" height="30" rx="7" fill="#ec7211"/>
+  <use href="#icon-server" x="67" y="385" width="20" height="20"/>
+  <text x="102" y="400" font-size="15" fill="#222">Node.js / Express service</text>
+
+  <rect x="62" y="422" width="30" height="30" rx="7" fill="#8c4fff"/>
+  <use href="#icon-db" x="67" y="427" width="20" height="20"/>
+  <text x="102" y="442" font-size="15" fill="#222">MySQL data store</text>
+
+  <rect x="62" y="464" width="30" height="30" rx="7" fill="#2e73b8"/>
+  <use href="#icon-shield" x="67" y="469" width="20" height="20"/>
+  <text x="102" y="484" font-size="15" fill="#222">Edge / gateway</text>
+
+  <rect x="62" y="506" width="30" height="30" rx="7" fill="#1d8a4c"/>
+  <use href="#icon-check" x="67" y="511" width="20" height="20"/>
+  <text x="102" y="526" font-size="15" fill="#222">Success outcome</text>
+
+  <rect x="280" y="422" width="30" height="30" rx="7" fill="#d13212"/>
+  <use href="#icon-x" x="285" y="427" width="20" height="20"/>
+  <text x="320" y="442" font-size="15" fill="#222">Failure outcome</text>
+
+  <rect x="280" y="464" width="30" height="30" rx="7" fill="#c98a0f"/>
+  <use href="#icon-warn" x="285" y="469" width="20" height="20"/>
+  <text x="320" y="484" font-size="15" fill="#222">Rejected outcome</text>
+
+  <rect x="280" y="506" width="30" height="30" rx="7" fill="#c33c9a"/>
+  <use href="#icon-clock" x="285" y="511" width="20" height="20"/>
+  <text x="320" y="526" font-size="15" fill="#222">Background / scheduled</text>
+
+  <!-- ============ RIGHT COLUMN: REQUEST / RESPONSE / MONITORING / SCHEDULER ============ -->
+
+  <rect x="1130" y="329" width="430" height="100" rx="10" fill="#f5f2ff" stroke="#8c4fff" stroke-width="1.3" stroke-dasharray="4,4"/>
+  <text x="1150" y="356" font-size="16" font-weight="600" fill="#5a35a8">Request</text>
+  <text x="1150" y="378" font-size="15" fill="#333">POST /orders</text>
+  <text x="1150" y="398" font-size="15" fill="#333">{ productId: 5 }</text>
+  <path d="M1130,379 H1081" stroke="#8c4fff" stroke-width="1.4" stroke-dasharray="3,4" fill="none" marker-end="url(#arrowDash)"/>
+
+  <rect x="1130" y="449" width="430" height="100" rx="10" fill="#f5f2ff" stroke="#8c4fff" stroke-width="1.3" stroke-dasharray="4,4"/>
+  <text x="1150" y="476" font-size="16" font-weight="600" fill="#5a35a8">Response (immediate)</text>
+  <text x="1150" y="498" font-size="15" fill="#333">201 Created</text>
+  <text x="1150" y="518" font-size="15" fill="#333">{ orderId, status: "confirmed" }</text>
+  <path d="M1130,499 H1081 V420" stroke="#8c4fff" stroke-width="1.4" stroke-dasharray="3,4" fill="none" marker-end="url(#arrowDash)"/>
+
+  <rect x="1130" y="569" width="430" height="170" rx="10" fill="#eef5fc" stroke="#4a7fd6" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="1150" y="598" font-size="18" font-weight="600" fill="#2e5fa3">Monitoring &amp; Observability</text>
+
+  <rect x="1150" y="614" width="34" height="34" rx="8" fill="#2e73b8"/>
+  <use href="#icon-chart" x="1155" y="619" width="24" height="24"/>
+  <text x="1196" y="632" font-size="15" fill="#222">GET /metrics — all 3 services</text>
+  <text x="1196" y="652" font-size="13" fill="#555">Prometheus format (prom-client)</text>
+  <text x="1196" y="670" font-size="13" fill="#555">latency · error rate · active reservations</text>
+
+  <rect x="1150" y="690" width="34" height="34" rx="8" fill="#465a69"/>
+  <use href="#icon-mesh" x="1155" y="695" width="24" height="24"/>
+  <text x="1196" y="708" font-size="15" fill="#222">Istio sidecars — k8s demo only</text>
+  <text x="1196" y="726" font-size="13" fill="#555">Kiali · Grafana · Jaeger</text>
+
+  <rect x="1130" y="759" width="430" height="90" rx="10" fill="#fdf1f9" stroke="#c33c9a" stroke-width="1.3" stroke-dasharray="4,4"/>
+  <rect x="1150" y="775" width="34" height="34" rx="8" fill="#c33c9a"/>
+  <use href="#icon-clock" x="1155" y="780" width="24" height="24"/>
+  <text x="1196" y="793" font-size="15" font-weight="600" fill="#8c2b6b">Reservation expiry scheduler</text>
+  <text x="1196" y="812" font-size="13" fill="#444">runs every RESERVATION_CLEANUP_INTERVAL_MS</text>
+  <text x="1196" y="830" font-size="13" fill="#444">auto-releases after RESERVATION_TTL_MINUTES</text>
+  <path d="M1150,849 V870 H1210 V856" stroke="#c33c9a" stroke-width="1.5" stroke-dasharray="3,4" fill="none" marker-end="url(#arrowDash)"/>
+
+  <!-- footer -->
+  <text x="40" y="1310" font-size="14" fill="#999">Illustrative — big pieces and the request flow between them, not a literal deployment diagram.</text>
+
+</svg>
+</body>
+</html>

@@ -1,0 +1,28 @@
+erDiagram
+    IN_STOCK ||--o{ RESERVED : "id_stock (ON DELETE CASCADE)"
+    IN_STOCK ||--o{ SOLD : "id_stock"
+
+    IN_STOCK {
+        int id PK
+        varchar product
+        int qtd
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    RESERVED {
+        int id PK
+        int id_stock FK
+        varchar product
+        varchar reservationToken UK
+        timestamp created_at
+        timestamp expires_at
+    }
+
+    SOLD {
+        int id PK
+        int id_stock FK
+        varchar product
+        varchar reservationToken UK
+        timestamp sold_at
+    }

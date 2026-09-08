@@ -1,0 +1,12 @@
+node_modules
+build
+coverage
+tests
+.git
+.github
+.env
+.env.example
+*.md
+docs
+Insomnia.json
+SQL

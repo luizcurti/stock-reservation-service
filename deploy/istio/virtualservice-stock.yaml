@@ -1,0 +1,31 @@
+# Bound to both "mesh" (so order-service's internal calls get the same
+# policy) and the ingress gateway (so `demo-canary.sh` can observe the split
+# from outside the cluster too, via
+# `curl -H "Host: stock-service.stock-mesh.svc.cluster.local"` — Istio
+# expands the short `hosts` entry below to that FQDN for gateway routing).
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: stock-service
+  namespace: stock-mesh
+spec:
+  hosts:
+    - stock-service
+  gateways:
+    - mesh
+    - stock-mesh-gateway
+  http:
+    - route:
+        - destination:
+            host: stock-service.stock-mesh.svc.cluster.local
+            subset: v1
+          weight: 90
+        - destination:
+            host: stock-service.stock-mesh.svc.cluster.local
+            subset: v2
+          weight: 10
+      retries:
+        attempts: 2
+        perTryTimeout: 2s
+        retryOn: 5xx,reset,connect-failure
+      timeout: 5s

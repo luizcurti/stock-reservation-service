@@ -1,0 +1,15 @@
+# Circuit breaker for the hop the resilience demo targets
+# (scripts/mesh/demo-resilience.sh, deploy/istio/demo/fault-injection-payment.yaml).
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: payment-service
+  namespace: stock-mesh
+spec:
+  host: payment-service.stock-mesh.svc.cluster.local
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100

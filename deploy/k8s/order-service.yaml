@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: stock-mesh
+  labels:
+    app: order-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: order-service
+          image: order-service:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+          env:
+            - name: PORT
+              value: "3001"
+            - name: STOCK_SERVICE_URL
+              value: http://stock-service:3000
+            - name: PAYMENT_SERVICE_URL
+              value: http://payment-service:3002
+            # Scaling here is via replicas (2, above), each with its own CPU
+            # allocation AND its own network namespace. Forking cluster
+            # workers inside a pod would just make them compete for the same
+            # per-pod CPU limit below — and, for an outbound-heavy service
+            # like this one, share (and can exhaust) one pod's ephemeral
+            # port range, as measured under load (see stock-service README's
+            # "Concurrency & scaling" section).
+            - name: WEB_CONCURRENCY
+              value: "1"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: stock-mesh
+spec:
+  selector:
+    app: order-service
+  ports:
+    - port: 3001
+      targetPort: 3001

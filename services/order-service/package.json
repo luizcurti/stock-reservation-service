@@ -1,0 +1,30 @@
+{
+  "name": "order-service",
+  "version": "1.0.0",
+  "description": "Minimal order orchestration stub — reserves stock, charges payment, confirms the sale. Exists to be a realistic synchronous HTTP host for the Istio service mesh demo, not a production order system.",
+  "main": "build/index.js",
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "prom-client": "^15.1.3",
+    "undici": "^8.10.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^24.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
+    "eslint": "^9.15.0",
+    "typescript": "^5.6.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "lint": "eslint src/**/*.ts --fix",
+    "lint:check": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}

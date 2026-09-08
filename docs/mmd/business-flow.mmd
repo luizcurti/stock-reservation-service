@@ -1,0 +1,34 @@
+stateDiagram-v2
+    [*] --> NoStock
+
+    NoStock --> Available: PATCH .../stock (create)
+
+    Available --> Reserved: POST .../reserve
+    Reserved --> Sold: POST .../sold
+    Reserved --> Available: POST .../return
+    Reserved --> Available: auto-expiry (RESERVATION_TTL_MINUTES)
+
+    Available --> Deleted: DELETE
+    Sold --> Deleted: DELETE
+    Deleted --> [*]
+
+    note left of Available
+        PATCH .../stock also updates qty in place
+        DELETE on Available only succeeds when there
+        is no reservation or sales history
+    end note
+
+    note right of Reserved
+        POST .../reserve requires qty > 0
+        (atomic SELECT ... FOR UPDATE)
+        DELETE is blocked with 409 while a
+        reservation is active
+        An unresolved reservation auto-releases after
+        RESERVATION_TTL_MINUTES (default 30min), same
+        as a manual POST .../return
+    end note
+
+    note right of Sold
+        DELETE is blocked with 409 once a
+        product has any sales history
+    end note

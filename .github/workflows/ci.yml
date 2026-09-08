@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/stock-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: services/stock-service/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint:check
+
+      - name: Unit tests with coverage
+        run: npm run test:coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Typecheck
+        # Runs after build: app.ts imports the TSOA-generated ./build/routes,
+        # which only exists once `npm run build` has generated it.
+        run: npm run typecheck
+
+      - name: E2E tests (real MySQL via Docker Compose)
+        # No .env file exists in CI (it's gitignored), so the app's DB pool
+        # (src/config/database.ts) needs these explicitly — they must match
+        # the docker-compose.yml fallback defaults (DB_USER/DB_PASSWORD).
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: app_user
+          DB_PASSWORD: root
+          DB_NAME: stock_test
+        run: npm run test:e2e
+
+      - name: Stop E2E database
+        if: always()
+        run: docker compose down -v
+        working-directory: ${{ github.workspace }}
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: services/stock-service/coverage
+
+  lint-stubs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [order-service, payment-service]
+      fail-fast: false
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: services/${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Builds and starts all three services + MySQL, waits for all of them
+      # to report healthy, and exercises the full order -> stock -> payment
+      # chain over real HTTP (happy path, payment decline releasing the
+      # reservation, insufficient stock, and concurrent orders never
+      # overselling). Tears itself down (and dumps container logs first on
+      # failure) regardless of outcome.
+      - name: Whole-stack integration test (docker compose)
+        run: scripts/integration-test.sh

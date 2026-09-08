@@ -1,0 +1,24 @@
+# Subsets key off the `version` pod label set in deploy/k8s/stock-service.yaml.
+# outlierDetection is the circuit breaker: a subset that returns 5 consecutive
+# 5xx responses gets ejected from the load-balancing pool for baseEjectionTime,
+# so a broken version stops receiving traffic instead of failing every request.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: stock-service
+  namespace: stock-mesh
+spec:
+  host: stock-service.stock-mesh.svc.cluster.local
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+    - name: v2
+      labels:
+        version: v2
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100

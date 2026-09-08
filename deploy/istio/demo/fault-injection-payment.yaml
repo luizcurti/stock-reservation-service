@@ -1,0 +1,36 @@
+# Applied only by scripts/mesh/demo-resilience.sh, on top of the baseline
+# ../virtualservice-payment.yaml (same name+namespace, so `kubectl apply`
+# replaces it in place).
+#
+# This demonstrates the TIMEOUT policy specifically, not retries: Istio
+# (Envoy) evaluates fault injection in a filter that runs BEFORE the
+# router/retry logic, so an injected fault is never itself retried — it's
+# meant for testing "what does my system do when a dependency is slow or
+# down", not for testing retry behavior. A 5s injected delay against this
+# VirtualService's 3s overall `timeout` means ~60% of calls fail fast and
+# predictably at the 3s mark instead of hanging — that's the `timeout` field
+# earning its keep. (Retries against *real* transient failures are
+# demonstrated separately via `CHAOS_MODE=flaky` — see
+# services/payment-service/src/index.ts.)
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: payment-service
+  namespace: stock-mesh
+spec:
+  hosts:
+    - payment-service
+  http:
+    - fault:
+        delay:
+          percentage:
+            value: 60
+          fixedDelay: 5s
+      route:
+        - destination:
+            host: payment-service.stock-mesh.svc.cluster.local
+      retries:
+        attempts: 2
+        perTryTimeout: 1s
+        retryOn: 5xx,reset,connect-failure,gateway-error
+      timeout: 3s

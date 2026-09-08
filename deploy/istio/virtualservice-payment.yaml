@@ -1,0 +1,22 @@
+# Mesh-internal only — payment-service is never reached directly from
+# outside the cluster, only via order-service. This is the baseline; during
+# the resilience demo, scripts/mesh/demo-resilience.sh temporarily replaces
+# it with deploy/istio/demo/fault-injection-payment.yaml (same object name,
+# same namespace) and restores this file afterwards.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: payment-service
+  namespace: stock-mesh
+spec:
+  hosts:
+    - payment-service
+  http:
+    - route:
+        - destination:
+            host: payment-service.stock-mesh.svc.cluster.local
+      retries:
+        attempts: 2
+        perTryTimeout: 1s
+        retryOn: 5xx,reset,connect-failure,gateway-error
+      timeout: 3s
