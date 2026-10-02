@@ -1,0 +1,91 @@
+# Local demo only — plaintext credentials in a Secret and an emptyDir data
+# volume (data is lost on pod restart) are fine here; neither belongs in a
+# real cluster. The init.sql ConfigMap is created imperatively by
+# scripts/mesh/deploy.sh from services/stock-service/SQL/stock.sql, so the
+# schema has a single source of truth instead of being duplicated into YAML.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-credentials
+  namespace: stock-mesh
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: root
+  MYSQL_DATABASE: stock
+  MYSQL_USER: app_user
+  MYSQL_PASSWORD: root
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: stock-mesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          args:
+            - --character-set-server=utf8mb4
+            - --collation-server=utf8mb4_unicode_ci
+            - --sql_mode=STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO
+          envFrom:
+            - secretRef:
+                name: mysql-credentials
+          ports:
+            - containerPort: 3306
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          readinessProbe:
+            exec:
+              command: ["mysqladmin", "ping", "-h", "localhost"]
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            # Generous thresholds on purpose: this pod holds the only copy
+            # of the data (emptyDir, see the file header) and restarting it
+            # loses everything, so it should only fire on a genuinely hung
+            # server, not a slow one under legitimate heavy load.
+            exec:
+              command: ["mysqladmin", "ping", "-h", "localhost"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: init-sql
+          configMap:
+            name: mysql-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: stock-mesh
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306

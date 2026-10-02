@@ -1,0 +1,32 @@
+# Bound to both "mesh" and the ingress gateway — order-service is the entry
+# point of the demo
+# (`curl -H "Host: order-service.stock-mesh.svc.cluster.local" .../orders`;
+# Istio expands the short `hosts` entry below to that FQDN for gateway routing).
+#
+# POST /orders is not idempotent: it reserves stock, charges a payment and
+# records a sale. Retrying it after a timeout or a 5xx would run a second
+# order while the first may still be completing (a second charge), so it
+# is only retried when the request provably never reached order-service
+# (connect-failure / refused-stream), and there is no perTryTimeout to cut
+# an in-flight order short. The overall timeout covers the worst case of the
+# downstream hops (stock 5s + payment 3s + stock 5s) so the gateway doesn't
+# give up on an order that is still going to complete.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-service
+  namespace: stock-mesh
+spec:
+  hosts:
+    - order-service
+  gateways:
+    - mesh
+    - stock-mesh-gateway
+  http:
+    - route:
+        - destination:
+            host: order-service.stock-mesh.svc.cluster.local
+      retries:
+        attempts: 2
+        retryOn: connect-failure,refused-stream
+      timeout: 15s

@@ -1,0 +1,20 @@
+flowchart LR
+    subgraph Host["Docker host"]
+        subgraph Network["stock_network (bridge)"]
+            App["stock_app container\nnode:24-alpine\nExpress API :3000\nWEB_CONCURRENCY worker processes"]
+            Order["order_service container\nExpress API :3001"]
+            Payment["payment_service container\nExpress API :3002"]
+            MySQL[("stock_mysql container\nmysql:8.4 :3306")]
+        end
+        Volume[("mysql_data volume")]
+    end
+
+    Caller["Client / API consumer"] -->|":3000"| App
+    Caller -->|":3001"| Order
+    Order -->|"STOCK_SERVICE_URL"| App
+    Order -->|"PAYMENT_SERVICE_URL"| Payment
+    App -->|"DB_HOST=mysql_database"| MySQL
+    MySQL --- Volume
+
+    App -.->|"GET /health, /metrics"| App
+    MySQL -.->|"mysqladmin ping"| MySQL

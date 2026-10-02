@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: stock-mesh
+  labels:
+    app: payment-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3002"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: payment-service
+          image: payment-service:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3002
+          env:
+            - name: PORT
+              value: "3002"
+            - name: CHAOS_MODE
+              value: "off"
+            # Scaling here is via replicas (2, above); see order-service.yaml
+            # for why intra-pod cluster workers aren't the right lever in k8s.
+            - name: WEB_CONCURRENCY
+              value: "1"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: stock-mesh
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - port: 3002
+      targetPort: 3002
