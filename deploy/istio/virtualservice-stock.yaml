@@ -1,0 +1,56 @@
+# Bound to both "mesh" (so order-service's internal calls get the same
+# policy) and the ingress gateway (so `demo-canary.sh` can observe the split
+# from outside the cluster too, via
+# `curl -H "Host: stock-service.stock-mesh.svc.cluster.local"` — Istio
+# expands the short `hosts` entry below to that FQDN for gateway routing).
+#
+# Two routes with the same 90/10 split, differing only in retry policy:
+# reads are idempotent and can be retried on any failure, but a write
+# (reserve/sold/return/PATCH/DELETE) that timed out or answered 5xx may
+# already have committed — retrying it would create a second reservation,
+# or turn a recorded sale into a "Reservation not found". Writes are only
+# retried when the request provably never reached the app.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: stock-service
+  namespace: stock-mesh
+spec:
+  hosts:
+    - stock-service
+  gateways:
+    - mesh
+    - stock-mesh-gateway
+  http:
+    - name: reads
+      match:
+        - method:
+            exact: GET
+      route:
+        - destination:
+            host: stock-service.stock-mesh.svc.cluster.local
+            subset: v1
+          weight: 90
+        - destination:
+            host: stock-service.stock-mesh.svc.cluster.local
+            subset: v2
+          weight: 10
+      retries:
+        attempts: 2
+        perTryTimeout: 2s
+        retryOn: 5xx,reset,connect-failure
+      timeout: 5s
+    - name: writes
+      route:
+        - destination:
+            host: stock-service.stock-mesh.svc.cluster.local
+            subset: v1
+          weight: 90
+        - destination:
+            host: stock-service.stock-mesh.svc.cluster.local
+            subset: v2
+          weight: 10
+      retries:
+        attempts: 2
+        retryOn: connect-failure,refused-stream
+      timeout: 5s

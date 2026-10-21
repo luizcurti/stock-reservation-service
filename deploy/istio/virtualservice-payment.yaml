@@ -1,0 +1,26 @@
+# Mesh-internal only — payment-service is never reached directly from
+# outside the cluster, only via order-service. scripts/mesh/demo-resilience.sh
+# exercises both policies below against real upstream behavior
+# (CHAOS_MODE=flaky for the retries, CHAOS_MODE=slow for the timeouts).
+#
+# Retrying POST /payments on 5xx is what the retries demo shows; it is only
+# safe because a real processor would dedupe on the orderId sent with each
+# charge (an idempotency key). Without one, use the stock-service writes
+# policy (deploy/istio/virtualservice-stock.yaml) instead.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: payment-service
+  namespace: stock-mesh
+spec:
+  hosts:
+    - payment-service
+  http:
+    - route:
+        - destination:
+            host: payment-service.stock-mesh.svc.cluster.local
+      retries:
+        attempts: 2
+        perTryTimeout: 1s
+        retryOn: 5xx,reset,connect-failure,gateway-error
+      timeout: 3s

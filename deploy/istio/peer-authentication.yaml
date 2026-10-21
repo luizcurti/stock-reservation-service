@@ -1,0 +1,11 @@
+# Namespace-wide STRICT mTLS: every sidecar in stock-mesh rejects any
+# connection that isn't mutual TLS, including plaintext connections from
+# outside the mesh. See scripts/mesh/demo-mtls.sh for a live proof.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: stock-mesh
+spec:
+  mtls:
+    mode: STRICT

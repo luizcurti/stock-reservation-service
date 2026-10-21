@@ -1,0 +1,23 @@
+# The actual routing lives in each service's VirtualService
+# (virtualservice-order.yaml, virtualservice-stock.yaml both list
+# stock-mesh-gateway in their `gateways`) — this resource just opens the
+# ingressgateway's HTTP listener. Reach services by Host header — Istio
+# expands a gateway-bound VirtualService's short `hosts` entry to its full
+# in-namespace FQDN for route matching, so the header must be the FQDN too:
+#   curl -H "Host: order-service.stock-mesh.svc.cluster.local" http://localhost:8080/orders
+#   curl -H "Host: stock-service.stock-mesh.svc.cluster.local" http://localhost:8080/product/1
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: stock-mesh-gateway
+  namespace: stock-mesh
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"

@@ -1,0 +1,193 @@
+# v1 and v2 run the exact same image — the only difference is the
+# SERVICE_VERSION env var (echoed back as the X-Version response header) and
+# the `version` pod label that Istio's DestinationRule subsets key off of.
+# That keeps the demo focused on the mesh traffic-shifting mechanism
+# (deploy/istio/destinationrule-stock.yaml + virtualservice-stock.yaml)
+# rather than requiring a second real code release.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-service-v1
+  namespace: stock-mesh
+  labels:
+    app: stock-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stock-service
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: stock-service
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: stock-service
+          image: stock-service:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: SERVICE_VERSION
+              value: v1
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: production
+            # Demo load (canary/resilience scripts + kubelet health probes,
+            # all sharing one rate-limit bucket behind the sidecar's loopback
+            # redirect) comfortably exceeds the library default of 100/15min.
+            - name: RATE_LIMIT_MAX
+              value: "10000"
+            # Scaling here is via replicas (2, above), each with its own CPU
+            # allocation. Forking cluster workers inside a pod would just
+            # make them compete for the same per-pod CPU limit below.
+            - name: WEB_CONCURRENCY
+              value: "1"
+            - name: DB_HOST
+              value: mysql
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_DATABASE
+          resources:
+            requests:
+              cpu: 150m
+              memory: 192Mi
+            limits:
+              cpu: 750m
+              memory: 384Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-service-v2
+  namespace: stock-mesh
+  labels:
+    app: stock-service
+    version: v2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stock-service
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: stock-service
+        version: v2
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: stock-service
+          image: stock-service:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: SERVICE_VERSION
+              value: v2
+            - name: PORT
+              value: "3000"
+            - name: NODE_ENV
+              value: production
+            # Demo load (canary/resilience scripts + kubelet health probes,
+            # all sharing one rate-limit bucket behind the sidecar's loopback
+            # redirect) comfortably exceeds the library default of 100/15min.
+            - name: RATE_LIMIT_MAX
+              value: "10000"
+            # Scaling here is via replicas (2, above), each with its own CPU
+            # allocation. Forking cluster workers inside a pod would just
+            # make them compete for the same per-pod CPU limit below.
+            - name: WEB_CONCURRENCY
+              value: "1"
+            - name: DB_HOST
+              value: mysql
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_DATABASE
+          resources:
+            requests:
+              cpu: 150m
+              memory: 192Mi
+            limits:
+              cpu: 750m
+              memory: 384Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+---
+# Selects both versions — DestinationRule subsets do the version split,
+# not this Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: stock-service
+  namespace: stock-mesh
+spec:
+  selector:
+    app: stock-service
+  ports:
+    - port: 3000
+      targetPort: 3000

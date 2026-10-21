@@ -1,0 +1,864 @@
+{
+  "info": {
+    "name": "stock-reservation-service",
+    "description": "API contract tests for stock-service, order-service and payment-service. Run in order (requests depend on earlier ones). `scripts/integration-test.sh` runs it with newman against the docker compose stack.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "stockUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "orderUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "paymentUrl",
+      "value": "http://localhost:3002"
+    },
+    {
+      "key": "productId",
+      "value": "700"
+    },
+    {
+      "key": "emptyProductId",
+      "value": "701"
+    },
+    {
+      "key": "orderProductId",
+      "value": "702"
+    },
+    {
+      "key": "missingProductId",
+      "value": "999999"
+    },
+    {
+      "key": "token1",
+      "value": ""
+    },
+    {
+      "key": "token2",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "stock-service",
+      "item": [
+        {
+          "name": "Create stock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/stock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"Collection Widget\",\n  \"qtd\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('body', () => pm.expect(pm.response.json()).to.eql({ id: Number(pm.variables.get('productId')), product: 'Collection Widget', stock: 2 }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create stock \u2014 negative qtd (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/stock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"Collection Widget\",\n  \"qtd\": -1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Quantity must be a non-negative integer.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create stock \u2014 missing product (422)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/stock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qtd\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Validation failed\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create stock \u2014 malformed JSON (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/stock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"product\": "
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Malformed JSON body\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get stock",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('body', () => pm.expect(pm.response.json()).to.eql({ ID: Number(pm.variables.get('productId')), IN_STOCK: 2, RESERVE: 0, SOLD: 0 }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get stock \u2014 unknown product (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{missingProductId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Product not found.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get stock \u2014 non-numeric id (422)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{stockUrl}}/product/abc"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reserve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{productId}}/reserve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('token is a UUID', () => pm.expect(body.reservationToken).to.match(/^[0-9a-f-]{36}$/));",
+                  "pm.collectionVariables.set('token1', body.reservationToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reserve \u2014 unknown product (404)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{missingProductId}}/reserve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Product not found in stock.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sell \u2014 invalid token (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/sold",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservationToken\": \"not-a-uuid\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Reservation token must be a valid UUID v4.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sell",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/sold",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"reservationToken\": \"{{token1}}\" }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sell \u2014 same token again (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/sold",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"reservationToken\": \"{{token1}}\" }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Reservation not found.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reserve again",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{productId}}/reserve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('token2', pm.response.json().reservationToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete \u2014 active reservation (409)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Cannot delete product with active reservations.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{productId}}/return",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"reservationToken\": \"{{token2}}\" }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete \u2014 sales history (409)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{productId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Cannot delete product with sales history.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create empty stock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{emptyProductId}}/stock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"Empty Widget\",\n  \"qtd\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reserve \u2014 insufficient stock (400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{emptyProductId}}/reserve"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Insufficient stock quantity.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{emptyProductId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete \u2014 already deleted (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{emptyProductId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Product not found.\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{stockUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status OK', () => pm.expect(pm.response.json().status).to.eql('OK'));",
+                  "pm.test('X-Version header', () => pm.response.to.have.header('X-Version'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{stockUrl}}/metrics"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('exposes business metrics', () => pm.expect(pm.response.text()).to.include('reservations_active'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown route (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{stockUrl}}/does-not-exist"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Not Found\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "payment-service",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('chaos mode off', () => pm.expect(pm.response.json().chaosMode).to.eql('off'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Authorize payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{paymentUrl}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"collection-order\",\n  \"amount\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('authorized', () => pm.expect(pm.response.json().status).to.eql('authorized'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Authorize payment \u2014 invalid amount (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{paymentUrl}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"collection-order\",\n  \"amount\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "order-service",
+      "item": [
+        {
+          "name": "Seed stock for order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{stockUrl}}/product/{{orderProductId}}/stock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"Order Widget\",\n  \"qtd\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{orderUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"productId\": {{orderProductId}}, \"amount\": 19.9 }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('confirmed', () => pm.expect(body.status).to.eql('confirmed'));",
+                  "pm.test('has payment and reservation', () => { pm.expect(body.paymentId).to.be.a('string'); pm.expect(body.reservationToken).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stock reflects the sale",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{stockUrl}}/product/{{orderProductId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('sold', () => pm.expect(pm.response.json()).to.include({ IN_STOCK: 0, RESERVE: 0, SOLD: 1 }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place order \u2014 out of stock (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{orderUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"productId\": {{orderProductId}} }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Could not reserve stock\"));",
+                  "pm.test('details from stock-service', () => pm.expect(pm.response.json().details.message).to.eql('Insufficient stock quantity.'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place order \u2014 unknown product (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{orderUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"productId\": {{missingProductId}} }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Could not reserve stock\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place order \u2014 missing productId (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{orderUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"productId (number) is required\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{orderUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
