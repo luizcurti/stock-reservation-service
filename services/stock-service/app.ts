@@ -17,6 +17,14 @@ import { requestClusterMetrics } from './src/config/clusterMetrics';
 
 export const app = express();
 
+// Reverse proxies in front of the service (Express `trust proxy` hops), so
+// the per-IP rate limiter below keys on the client instead of the proxy.
+// Unset (no proxy trusted) for docker-compose and the mesh demo; the AWS
+// deployment sets 2 (CloudFront, then the ALB — see docs/deployment.md).
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', parseInt(process.env.TRUST_PROXY, 10));
+}
+
 // Identifies which deployed version answered — used by the Istio canary demo
 // to prove the 90/10 traffic split (deploy/istio/virtualservice-stock.yaml).
 const SERVICE_VERSION = process.env.SERVICE_VERSION || 'v1';

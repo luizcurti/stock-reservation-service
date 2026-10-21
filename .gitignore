@@ -141,3 +141,9 @@ test-results/
 # Deployment
 .vercel
 .netlify
+# Terraform (infra/, bootstrap/)
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+infra/ci_backend.tf

@@ -46,6 +46,13 @@ scripts/mesh/demo-canary.sh
 ```
 Full walkthrough, one section per capability with the exact YAML responsible and the command to see it live: **[docs/mesh.md](docs/mesh.md)**.
 
+**Deployed on AWS** — the three services on ECS Fargate behind CloudFront and one ALB, with RDS MySQL, deployed by GitHub Actions on every push to `main` ([docs/deployment.md](docs/deployment.md)):
+```bash
+scripts/bootstrap.sh                                                                                 # once: state bucket, deploy role, GitHub environment
+gh workflow run ci.yml --repo luizcurti/stock-reservation-service --ref main                         # deploy
+gh workflow run destroy.yml --repo luizcurti/stock-reservation-service --ref main -f confirm=destroy # tear down
+```
+
 ## Repository structure
 
 ```
@@ -59,7 +66,11 @@ stock-reservation-service/
 │   └── istio/               # PeerAuthentication, DestinationRules, VirtualServices, Gateway
 ├── scripts/
 │   ├── mesh/                 # kind/Istio automation — cluster up, build, deploy, and demo scripts
-│   └── integration-test.sh   # whole-stack HTTP integration test (docker compose)
+│   ├── integration-test.sh   # whole-stack HTTP integration test (docker compose)
+│   ├── bootstrap.sh          # one-time AWS + GitHub setup for the deploy job
+│   └── smoke-test.sh         # end-to-end checks against the AWS deployment
+├── infra/                   # Terraform for the AWS deployment (ECS Fargate, ALB, CloudFront, RDS MySQL)
+├── bootstrap/               # Terraform for the state bucket and the GitHub OIDC deploy role
 ├── collections/             # Postman collection for all three APIs (run by integration-test.sh via newman)
 ├── docs/                    # architecture diagrams + the mesh demo walkthrough
 ├── .github/workflows/       # CI (see below)
@@ -68,10 +79,12 @@ stock-reservation-service/
 
 ## CI
 
-GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs on every push/PR to `main`, in three jobs:
+GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs on every push/PR to `main`, in five jobs:
 
 1. **test** — audits, format-checks, lints, typechecks, and unit-tests `stock-service` (100% coverage), then runs its e2e suite against real MySQL.
 2. **test-stubs** — the same audit, format check, lint, typecheck and unit tests (with coverage thresholds) for `order-service` and `payment-service`.
 3. **docker** — once both pass, builds and starts all three services + MySQL via `docker compose`, then runs [`scripts/integration-test.sh`](scripts/integration-test.sh) against the live stack (see [Running it](#running-it)).
+4. **infra** — `terraform fmt` + `validate` of `infra/` and `bootstrap/`.
+5. **deploy** (on `main` only) — pushes the three images, applies `infra/` through GitHub OIDC, loads the MySQL schema with a one-off ECS task, and runs [`scripts/smoke-test.sh`](scripts/smoke-test.sh) against the live AWS stack, including concurrent orders that must never oversell. A manual **Destroy** workflow tears it down ([docs/deployment.md](docs/deployment.md)).
 
 The Kubernetes/Istio mesh demo is intentionally not part of CI — it's a local demo environment (see [docs/mesh.md](docs/mesh.md)'s [Scope and honesty](docs/mesh.md#scope-and-honesty) section), not a deployed system.
